@@ -1,57 +1,72 @@
 # PDF RAG Support Chatbot
 
-A source-grounded support chatbot for internal PDFs. It ingests PDFs with page-level metadata, retrieves relevant chunks from Qdrant, answers with OpenAI, and cites source document/page. If the retrieved context is insufficient, it abstains instead of guessing.
+A source-grounded support chatbot for internal PDFs. Upload user manuals, FAQs and SOPs, then ask questions and receive answers with document and page citations. If retrieved context is weak or the model cannot cite its answer, the app abstains instead of guessing.
 
 ## Features
 
-- PDF upload and indexing with page-level citations
-- FastAPI `/chat`, `/upload`, `/documents`, and `/health` endpoints
-- Qdrant vector store; OpenAI embeddings and chat model
-- React + Vite chat UI with clickable source references
-- Grounding threshold and explicit abstention behavior
-- Docker Compose for local deployment
-- Demo PDF/document fixture and evaluation questions
-
-## Requirements
-
-- Docker Desktop / Docker Engine with Compose
-- An OpenAI API key
+- FastAPI `/chat`, `/upload`, `/documents`, and `/health` endpoints.
+- PDF text extraction with page-level metadata using PyMuPDF.
+- Recursive chunking with configurable size/overlap.
+- Qdrant vector database, OpenAI embeddings, and OpenAI chat model through LangChain.
+- React/Vite chat interface with uploaded-document list, PDF upload, source excerpts, page references, loading states, and abstention indication.
+- Docker Compose local setup, smoke evaluation, and parsing tests.
 
 ## Quick start
 
-1. Copy `.env.example` to `.env` and set `OPENAI_API_KEY`.
-2. Run `docker compose up --build`.
-3. Open the UI at http://localhost:5173 and API docs at http://localhost:8000/docs.
-4. Upload a PDF through the UI, wait for indexing, then ask questions. Responses include the source filename and page number.
+**Prerequisites:** Docker Desktop / Docker Engine with Compose, and an OpenAI API key.
 
-The first request downloads the embedding model used by OpenAI's API and may take a few seconds. Qdrant data persists in a Docker volume.
+1. Clone this repository.
+2. Copy `.env.example` to `.env` and set `OPENAI_API_KEY`.
+3. Run `docker compose up --build`.
+4. Open the UI at [http://localhost:5173](http://localhost:5173), or API docs at [http://localhost:8000/docs](http://localhost:8000/docs).
+5. Upload a text-based PDF through the UI and ask questions.
 
-## Configuration
-
-See `.env.example` for model, chunk size, overlap, retrieval count, and minimum similarity settings. Similarity scores are not calibrated probabilities; tune `MIN_RELEVANCE_SCORE` against your own evaluation questions before production use.
+Qdrant data persists in the `qdrant_data` Docker volume. Set your API key locally; do not commit `.env`.
 
 ## API
 
 ### `POST /upload`
-Multipart form upload with a `file` field. Accepts PDFs only, extracts text page by page, chunks it, and stores metadata (`source`, `page`, `chunk_id`).
+Multipart upload with field `file`. Supports PDF only (25 MB default limit). It extracts text page by page, splits the content into chunks, and indexes metadata including source filename, page number and chunk ID.
 
 ### `POST /chat`
-JSON body: `{ "question": "How do I reset a device?" }`. Returns `answer`, `sources`, and `abstained`.
+JSON request: `{"question":"How do I reset my device?"}`. Response shape:
+
+```json
+{
+  "answer": "Try reconnecting the power adapter [guide.pdf, p. 2].",
+  "sources": [{"source":"guide.pdf","page":2,"excerpt":"...","score":0.62}],
+  "abstained": false
+}
+```
 
 ### `GET /documents`
-Lists indexed document names and chunk counts.
+Lists indexed source filenames and chunk counts.
 
 ### `GET /health`
-Basic service health.
+Basic API liveness endpoint.
+
+## Configuration
+
+See `.env.example` for the chat model, embedding model, chunk size/overlap, retrieval count, score threshold, file-size limit and CORS origins. Similarity scores are not calibrated probabilities; tune `MIN_RELEVANCE_SCORE` on a reviewed evaluation set for your PDFs.
 
 ## Evaluation
 
-`evaluation/questions.json` contains sample in-scope and out-of-scope questions. The lightweight evaluation runner checks the service's abstention behavior and whether returned answers include source citations. It is a smoke evaluation, not a substitute for a reviewed gold set or a full RAGAS run. Add the customer-provided 15–20 questions and expected sources before sign-off.
+The `evaluation/` folder contains starter questions and a basic smoke runner:
 
-## Production hardening checklist
+```bash
+python evaluation/run_smoke_eval.py
+```
 
-Before exposing this beyond a trusted internal demo: add authentication/authorization, upload size and rate limits, malware scanning, deletion/re-indexing workflows, persistent document registry, structured observability, prompt-injection tests, tenant isolation if multi-customer, backup/restore, and deployment secrets management. Source citations and the abstention threshold should be validated on representative PDFs, including scanned PDFs (OCR is not enabled in this demo).
+Add the customer-provided 15–20 questions, expected answers and expected sources before sign-off. The current smoke runner checks citations/abstention heuristically and **does not** assess factual correctness or replace RAGAS/human review. No accuracy scores are claimed until the real document corpus and expected answers are provided.
 
-## Repository ownership
+## Important limitations and production hardening
 
-All application source code in this repository is intended for your use and modification. OpenAI API usage and hosting are billed separately by their providers.
+- Scanned/image-only PDFs are rejected with an explanation; OCR is not included.
+- This initial demo has no authentication, per-user tenancy, document deletion UI, audit logging, malware scanning, or rate limiting.
+- It does not provide a guaranteed hallucination-free system. Validate chunking and retrieval thresholds on real documents before customer-facing use.
+- Production deployment should add auth/authorization, upload validation/scanning, structured observability, backup/restore, retention/deletion controls, and secret management.
+- The app requires an OpenAI API key and external API billing.
+
+## Ownership
+
+The source code in this repository is available for you to use and modify. OpenAI API, hosting and other provider costs are separate.
