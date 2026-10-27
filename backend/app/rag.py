@@ -121,7 +121,8 @@ class RAGService:
         try:
             hits = store.similarity_search_with_relevance_scores(question, k=settings.retrieval_k)
         except Exception as exc:
-            if "does not exist" in str(exc).lower() or "not found" in str(exc).lower():
+            error_text = str(exc).lower()
+            if any(marker in error_text for marker in ("does not exist", "doesn't exist", "not found", "404", "collection")):
                 return {"answer": ABSTENTION, "sources": [], "abstained": True}
             raise
         if not hits:
