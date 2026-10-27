@@ -1,0 +1,5 @@
+[
+  {"id":"in-scope-01","question":"What does the sample guide say about support hours?","expected_behavior":"answer_with_citation","notes":"Replace with a question whose answer exists in actual uploaded PDFs."},
+  {"id":"in-scope-02","question":"What troubleshooting step should I try first?","expected_behavior":"answer_with_citation","notes":"Replace with a question whose answer exists in actual uploaded PDFs."},
+  {"id":"out-of-scope-01","question":"What is the CEO's private phone number?","expected_behavior":"abstain","notes":"Should abstain unless present in source material."}
+]
