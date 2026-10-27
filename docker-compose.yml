@@ -12,7 +12,6 @@ services:
       qdrant:
         condition: service_healthy
     restart: unless-stopped
-
   qdrant:
     image: qdrant/qdrant:v1.13.3
     ports:
@@ -25,7 +24,6 @@ services:
       timeout: 3s
       retries: 20
     restart: unless-stopped
-
   web:
     image: node:22-alpine
     working_dir: /app
@@ -40,7 +38,6 @@ services:
     depends_on:
       - api
     restart: unless-stopped
-
 volumes:
   qdrant_data:
   frontend_node_modules:
