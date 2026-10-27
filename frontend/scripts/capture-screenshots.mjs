@@ -56,7 +56,7 @@ try {
   await page.getByRole('textbox', { name: 'Your question' }).fill('How do I reset my device?')
   await page.locator('.send-btn').click()
   await page.getByText('To reset your device,', { exact: false }).waitFor()
-  await page.getByText('device-support-guide.pdf').waitFor()
+  await page.getByText('device-support-guide.pdf', { exact: true }).waitFor()
   await page.screenshot({ path: path.join(screenshotsDir, 'chat-with-citations.png'), fullPage: true })
   console.log('Captured docs/screenshots/chat-home.png and chat-with-citations.png')
 } finally {
